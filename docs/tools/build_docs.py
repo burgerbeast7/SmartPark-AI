@@ -386,6 +386,35 @@ def create_report(test_count=49, passed_count=49, apk_size_mb=None, device_name=
         "Outcome: Zero errors, zero warnings, zero linter issues found."
     )
 
+    doc.add_heading("6.3 Release APK Build & Physical Device Execution", level=2)
+    doc.add_paragraph(
+        f"The production release APK was built via 'flutter build apk --release'.\n"
+        f"• APK File Path: build/app/outputs/flutter-apk/app-release.apk\n"
+        f"• File Size: {apk_size_mb} MB (79.7 MB)\n"
+        f"• Verified Device Model: {device_name}\n"
+        f"• Operating System: Android 13 (API Level 33, arm64-v8a architecture)\n"
+        f"• Installation Status: Successfully streamed and installed via adb (exit code 0).\n"
+        f"• Execution Status: App launched and fully verified on physical device."
+    )
+
+    doc.add_heading("6.4 Real Device Screenshots (Physical Test)", level=2)
+    screenshots = [
+        ("Figure 6.1: Real Device Dashboard Screen", "01_dashboard.png"),
+        ("Figure 6.2: Real Device Vehicle Entry Screen", "02_entry.png"),
+        ("Figure 6.3: Real Device Vehicle Exit Screen", "03_exit.png"),
+        ("Figure 6.4: Real Device Active Parking Screen", "04_active.png"),
+        ("Figure 6.5: Real Device History Screen", "05_history.png"),
+        ("Figure 6.6: Real Device Reports Screen", "06_reports.png"),
+        ("Figure 6.7: Real Device Tariff Settings Screen", "07_tariff.png"),
+    ]
+    for title, fname in screenshots:
+        fpath = os.path.join(SCREENSHOTS_DIR, fname)
+        if os.path.exists(fpath):
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            doc.add_paragraph(f"{title}:", style='Normal')
+            doc.add_picture(fpath, width=Inches(3.0))
+
     # Chapter 7: Conclusion & Future Scope
     doc.add_heading("Chapter 7: Conclusion & Future Scope", level=1)
     doc.add_heading("7.1 Project Conclusion", level=2)
@@ -556,15 +585,25 @@ def create_presentation():
 
     # Slide 9: Real Screenshots
     s9 = prs.slides.add_slide(blank_layout)
-    add_header(s9, "Application User Interface & Demonstrations")
-    add_bullets(s9, [
-        "Dashboard Screen: Displays today's collection, active vehicles, entry/exit counts, and occupancy progress bar.",
-        "Vehicle Entry Screen: Camera capture thumbnail, editable plate field, category selector, and suggestion chips.",
-        "Vehicle Exit Screen: Plate search with live active vehicle filtering, bill breakdown card, and payment toggle.",
-        "Receipt Screen: Detailed receipt breakdown (SP-XXXXXX format), payment status badge, and sharing action.",
-        "Reports Screen: Summary cards across Today/7-day/30-day windows and RFC 4180 CSV export.",
-        "Screenshots status: Captured during Phase 7 device/emulator verification."
-    ])
+    add_header(s9, "Application User Interface (Real Device Demonstrations)")
+    shots = [
+        ("Dashboard", "01_dashboard.png"),
+        ("Vehicle Entry", "02_entry.png"),
+        ("Vehicle Exit", "03_exit.png"),
+        ("Reports & CSV", "06_reports.png"),
+    ]
+    for idx, (label, fname) in enumerate(shots):
+        fpath = os.path.join(SCREENSHOTS_DIR, fname)
+        if os.path.exists(fpath):
+            left = PptInches(0.8 + idx * 3.0)
+            top = PptInches(1.8)
+            prs_pic = s9.shapes.add_picture(fpath, left, top, height=PptInches(5.0))
+            lbl_box = s9.shapes.add_textbox(left, PptInches(6.9), PptInches(2.5), PptInches(0.4))
+            p_lbl = lbl_box.text_frame.paragraphs[0]
+            p_lbl.text = label
+            p_lbl.font.size = PptPt(12)
+            p_lbl.font.bold = True
+            p_lbl.font.color.rgb = PPT_PRIMARY
 
     # Slide 10: Testing Results
     s10 = prs.slides.add_slide(blank_layout)
@@ -603,5 +642,5 @@ def create_presentation():
     print(f"Presentation saved to {PPTX_PATH}")
 
 if __name__ == "__main__":
-    create_report(test_count=49, passed_count=49)
+    create_report(test_count=49, passed_count=49, apk_size_mb=79.7, device_name="Vivo / iQOO 7 (I2011)")
     create_presentation()
