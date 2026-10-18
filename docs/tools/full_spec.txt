@@ -1,0 +1,1395 @@
+SMARTPARK AI
+AI-Assisted Mobile Parking Management System
+Seven-Day MVP Plan  •  B.Tech CSE, 7th Semester Major Project
+Plan  •  Tech Stack  •  Database  •  Billing  •  7-Day Schedule  •  Master Prompt  •  Report Outline
+Project vision
+An Android app for parking owners that records vehicle entry and exit, reads number plates using
+camera-based OCR, calculates parking charges, and keeps local records and reports.
+Recommended approach
+Use Google Antigravity as the AI-assisted development environment, Flutter for the Android app,
+ML Kit for text recognition, and SQLite for offline storage. Build a reliable end-to-end parking
+workflow before adding advanced features.
+At a glance
+Platform
+Android (Flutter + Dart)
+Timeline
+7 days
+Data
+Offline-first, local SQLite
+AI feature
+Camera OCR with owner confirmation
+Output
+Installable APK, report and presentation
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 2
+READ FIRST
+Build Directive for the AI Agent
+This PDF is the complete and authoritative specification for SmartPark AI. When a user uploads it and
+says “build it”, the agent must:
+1.  Read the whole document first: Part A (vision, design) and Part B (Sections 12–24, the executable
+ specification).
+2.  Build the entire Android app from an empty folder to a release APK in one autonomous run,
+ following the phases in Section 21 in order. Ask the user no questions; every decision is fixed
+in Section 13.
+3.  Run the verification gate after each phase and read the real output. Fix failures at the root cause;
+ never skip, weaken or delete checks.
+4.  Deliver exactly what the specification lists: no placeholder screens, no sample data, no TODOs,
+ no unused code or packages, no extra features.
+5.  In parallel with the build, produce the project report (.docx) and the presentation (.pptx) as
+ specified in Section 24, so both are finished when the APK is. Use only real results and real
+screenshots in them.
+6.  Finish with the release APK, source, README.md, the report, the presentation and the final status
+ report in Section 21. Never claim something passed unless the command was run. Anything
+unverified (for example no phone connected) must be reported as such.
+Precedence
+Part B overrides Part A and the original prompt in Section 8 wherever they differ (for example: the camera
+uses the system camera app, so no CAMERA permission is declared).
+Paste this command into Google Antigravity (or any AI coding agent) with
+the PDF attached
+Read the attached SmartPark_AI_Project_Plan.pdf completely. Execute Part B (Agent Build
+Specification) exactly, Phase 0 to Phase 8, in an empty project folder named smartpark_ai. Do
+not ask me questions; every decision is fixed in the PDF. Run every verification gate and fix
+failures at their root cause. Do not add anything the PDF does not list. In parallel with the
+build, also create the project report (DOCX) and the presentation (PPTX) exactly as defined in
+Section 24, using only real results and real screenshots. Deliver the release APK, the source
+code, README.md, the report, the presentation and the final status report defined in Section
+21, and state honestly anything you could not verify.
+What you get
+Where it is specified
+Fixed tech and package decisions
+Section 13
+Exact setup commands and Android config
+Section 14
+File structure
+Section 15
+Database DDL
+Section 16
+Billing, plate, OCR and transaction rules
+Section 17
+Workflow diagrams (entry, exit, states)
+Section 4A
+Report and presentation (parallel track)
+Section 24
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 3
+What you get
+Where it is specified
+Every screen
+Section 18
+Required tests and phase gates
+Sections 20–21
+Done checklist
+Section 23
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 4
+1. Project Vision and Scope
+SmartPark AI is a mobile-first parking management system designed for small parking facilities. The
+owner uses an Android phone to capture a vehicle number plate at entry and exit. The app records
+timestamps, calculates the fee from configurable tariff rules, and maintains a searchable history.
+Core workflow
+ Entry: Capture a plate image, recognize text, let the owner confirm/correct the registration, then
+create an active parking session.
+ Tracking: Store the entry timestamp and show the vehicle in the active parking list.
+ Exit: Scan or search the same registration, find the active session, capture exit time and calculate
+duration and fee.
+ Payment and receipt: Record payment status and provide a receipt with entry, exit, duration
+and amount.
+ Dashboard: Show active vehicles, today's entries/exits, daily collection and parking history.
+Project objective
+Create a practical, offline-capable Android application that reduces manual recordkeeping and arithmetic
+errors. Describe it as an AI-assisted system; do not claim perfect recognition or fully autonomous
+operation.
+2. Recommended Technical Stack
+Layer
+Recommended technology
+Purpose
+Development
+assistant
+Google Antigravity
+Generate code, assist debugging, run checks and
+help with build workflow.
+Android app
+Flutter + Dart
+Responsive mobile screens, navigation, forms,
+camera workflow and dashboard.
+OCR
+Google ML Kit Text
+Recognition
+Extract text from captured plate images; not a
+dedicated plate detector.
+Local database
+SQLite with Drift or
+compatible package
+Store sessions, tariff rules, payments and history
+offline.
+Billing logic
+Dart service/module
+Calculate elapsed time and charge using
+deterministic rules.
+Reports
+CSV export; PDF optional
+Daily collection and transaction records.
+Build tools
+Flutter SDK + Android SDK
+Compile and package an installable APK.
+Why this stack?
+ Flutter lets you focus on one Android app rather than separate web and mobile codebases.
+ SQLite avoids mandatory server setup and supports offline operation.
+ OCR is a helper, not the billing authority: an owner should confirm uncertain plate text.
+ Billing should be deterministic and testable; an AI model should never decide the price.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 5
+3. System Architecture and Workflow
+ Android phone
+ Flutter UI: Dashboard • Entry • Exit • Active Parking • History • Settings
+ Camera capture → ML Kit OCR → normalize / validate → owner confirms plate
+ Parking service: create session • find active session • calculate charge • close session
+ SQLite: parking_sessions • tariff_settings • payments
+Entry flow
+ 1
+Owner opens Vehicle Entry and captures the
+number plate.
+ 2
+OCR extracts a text candidate; app normalizes
+it and asks the owner to confirm or correct it.
+ 3
+App checks for an existing active session for
+the same plate.
+ 4
+If valid, save a new session with the current
+timestamp and status ACTIVE.
+Exit flow
+ 1
+Owner scans or searches for the plate.
+ 2
+App finds exactly one active session and
+records the current exit timestamp.
+ 3
+Calculate duration and charge from the
+configured tariff; show the breakdown for
+confirmation.
+ 4
+Save the final amount and exit time, mark the
+session COMPLETED, and prevent duplicate
+processing.
+Important implementation detail
+Use stored entry and exit timestamps for all calculations. Do not calculate historical duration from the
+current time. Reject exit times earlier than entry times and handle overnight parking correctly.
+4. Database Design
+Table
+Suggested fields
+Notes
+parking_sessions
+id, plate_number, entry_time,
+exit_time, duration_minutes, amount,
+status, tariff_snapshot
+Core record. Active session has no exit
+time; completed session stores final
+amount.
+tariff_settings
+id, first_hour_rate,
+additional_hour_rate, grace_minutes,
+rounding_rule, updated_at
+Keep tariff configurable. Save the tariff
+used for each transaction.
+payments
+id, session_id, amount,
+payment_method, payment_status,
+paid_at
+Keep payment state separate from
+parking session state.
+Suggested statuses
+ ACTIVE: vehicle is parked and has not exited.
+ COMPLETED: exit is recorded and final amount is calculated.
+ Payment: use a separate payment_status such as UNPAID or PAID.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 6
+4A. Workflow Diagrams
+These diagrams define how the app must behave. Dark rounded shapes are start and end points,
+light boxes are steps, amber diamonds are decisions, red boxes are refusals or error paths, and
+green boxes are successful saves. The screens in Section 18 and the rules in Section 17 must follow
+them exactly.
+4A.1 End-to-end system workflow
+later, at exit
+stored in
+Vehicle arrives at the
+gate
+Capture plate; OCR
+suggests the number
+Owner verifies and
+confirms the plate
+ACTIVE session saved
+with entry time
+Vehicle leaves: scan or
+search the plate
+Find ACTIVE session
+and calculate the bill
+COMPLETED saved with
+payment status
+Receipt shown or
+shared
+SQLite on the phone (works offline): parking_sessions, tariff_settings, payments.
+Dashboard, Active list, History, Reports and CSV all read from it.
+4A.2 Session and payment status
+exit confirmed
+received at exit
+not received at exit
+Mark as Paid
+Entry confirmed
+Session: ACTIVE
+Session: COMPLETED
+Payment: UNPAID
+Payment: PAID
+Session status and payment status are separate. A COMPLETED session always has exactly one payment row,
+which is UNPAID until money is recorded.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 7
+4A.3 Vehicle Entry workflow
+Yes
+No (cancelled / error)
+Yes
+No text
+Yes
+No
+No
+Yes
+Owner opens Vehicle Entry
+Tap Capture Plate (system camera opens)
+Photo captured?
+ML Kit reads text; best plate candidate is
+chosen (17.3)
+Plate-like text found?
+Plate field pre-filled; other candidates shown
+as chips
+Operator verifies or edits the plate and picks a
+category
+Length 4 to 12?
+ACTIVE session already
+exists for this plate?
+Save ACTIVE session, entry time = now
+Confirmation shown, form reset
+Manual entry: operator types the
+plate
+Show error; operator corrects the
+plate
+Refuse: already parked since the
+stored entry time
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 8
+4A.4 Vehicle Exit workflow
+Yes
+No
+Yes
+No
+No: mark UNPAID
+Yes
+Yes
+No
+Owner opens Vehicle Exit
+Scan the plate (OCR), type it, or tap a vehicle in
+the Active list
+Operator verifies the plate and taps Find
+Exactly one ACTIVE
+session found?
+Capture exit time once. Duration = (exit minus
+entry) in whole minutes
+Exit time on or after entry
+time?
+Apply tariff: within grace = ₹0, else first hour +
+additional started hours
+Show bill breakdown and total
+Payment received?
+Operator taps Confirm Exit (button disabled
+while saving)
+Conditional UPDATE
+changed exactly 1 row?
+Save COMPLETED session, amount, tariff snapshot
+and payment in one transaction
+Show Receipt (share, or mark paid later)
+Show: no active session for this
+plate. Nothing changes.
+Reject: invalid timestamp
+Mark PAID: Cash or UPI, paid_at =
+now
+Refuse: already completed. No
+duplicate bill.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 9
+4A.5 Build workflow for the AI agent
+Phase 0 Preflight:
+flutter doctor
+Phase 1 Create
+project, packages,
+Android config
+Phase 2 Database,
+billing, tests
+Phase 3 Screens on
+real data
+Phase 4 Camera
+and OCR
+Phase 5 Reports,
+CSV, receipts
+Phase 6 Release
+APK build
+Phase 7 Device
+check
+Phase 8 README
+and status report
+Done: all Section
+23 checks
+Every phase ends with a gate. If it fails: read the error, fix the root cause, re-run the same gate. Never skip or weaken a
+gate.
+The phases and gates are specified in Section 21.
+4A.6 Parallel build and documentation workflow
+real results feed the docs
+APP
+track
+DOCS
+track
+Phases 0-1
+Setup and
+packages
+Phase 2
+Database,
+billing, tests
+Phases 3-4
+Screens,
+camera, OCR
+Phases 5-6
+Reports, release
+APK
+Phases 7-8
+Device check,
+README
+Report skeleton,
+slide outline, Ch.
+1-2
+Ch. 3-4
+requirements,
+design,
+diagrams
+Ch. 5
+implementation,
+slides 6-7
+Ch. 6 testing
+with real results
+Real
+screenshots, Ch.
+7, final export
+Both tracks finish together: release APK, README, report (.docx) and presentation (.pptx)
+Track A builds and verifies the app; Track B writes the report and presentation from the same verified facts. See
+Section 24.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 10
+5. Billing Rules and Worked Example
+Choose a tariff policy and state it clearly in the app and report. Example policy: ₹30 for the first
+started hour and ₹20 for every additional started hour. Under this example, a stay of 2 hours 25
+minutes costs ₹70.
+For duration D in minutes:
+ Charge = 30 + ceil( max(0, D − 60) / 60 ) × 20
+Field
+Example
+Vehicle
+HP 01 AB 1234
+Entry
+10:15 AM
+Exit
+12:40 PM
+Duration
+145 minutes (2 h 25 min)
+Calculation
+₹30 first hour + 2 × ₹20 additional started hours
+Final charge
+₹70
+Billing edge cases to test
+ Stay under the configured grace period.
+ Exactly one hour, one hour plus one minute, and exactly two hours.
+ Overnight parking across midnight.
+ Missing active session at exit.
+ Duplicate entry and repeated exit tap.
+ Tariff settings changed after a completed transaction.
+6. Camera and OCR Design
+ML Kit Text Recognition extracts text from an image; it is not a dedicated Indian vehicle plate
+detector. For the MVP, use camera capture, image cropping if practical, OCR, normalization and
+manual confirmation. Avoid claiming perfect recognition.
+ Normalize candidate text to uppercase and remove irrelevant spaces/hyphens according to your
+chosen plate format.
+ Use format checks as a warning, not an infallible rejection rule; special registrations may differ.
+ If OCR is uncertain or finds no usable text, allow manual entry or a retake.
+ Test outdoors and indoors, with angled plates, glare, blur and low light.
+ Do not create a session until the operator confirms the plate.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 11
+7. Seven-Day Development Schedule
+Day
+Focus
+Deliverable
+Day 1
+Setup and UI
+Install/verify Flutter, Android SDK and Antigravity; create navigation
+and screen layouts using sample data.
+Day 2
+Database and billing
+Set up SQLite; implement sessions, tariff rules, entry/exit and billing
+tests.
+Day 3
+Camera and OCR
+Add camera capture, ML Kit OCR, normalization, validation and manual
+correction.
+Day 4
+End-to-end workflow
+Connect entry and exit scanning to persistent records, billing and
+receipts.
+Day 5
+Reports and polish
+Add active list, search, history, dashboard totals, CSV export and error
+handling.
+Day 6
+APK and device tests
+Build release APK, install on phone, test permissions, offline persistence
+and full parking cycles.
+Day 7
+Report and
+presentation
+Capture real screenshots, complete report/PPT, run test cases and
+rehearse demo.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 12
+8. Master Prompt for Google Antigravity
+This is the original prompt, kept for reference. For a one-click build use the Build Directive on page 2:
+it runs the same stages autonomously, with a verification gate after each one, and Part B overrides
+this section wherever they differ.
+PROJECT
+SmartPark AI — Mobile-First Smart Parking Management System. Act as a senior Flutter
+developer, Android engineer, database architect, UI/UX designer and testing engineer. Build a
+functional Android app for small parking owners in India. The MVP must be demonstrable within
+seven days.
+TECH STACK
+- Flutter and Dart.
+- SQLite using Drift or a maintained compatible package.
+- Camera capture for vehicle number plates.
+- Google ML Kit Text Recognition for OCR.
+- Local-first operation; no mandatory cloud backend, paid API or login for core operations.
+- Modular UI, database, OCR and billing code.
+SCREENS
+1. Dashboard: today's revenue, active vehicles, entries, exits and occupancy.
+2. Vehicle Entry: camera capture, OCR, editable registration, category and confirmation.
+3. Vehicle Exit: scan/search plate, active session, duration, bill and exit confirmation.
+4. Active Parking: searchable parked-vehicle list.
+5. History: completed sessions, dates, amounts and payment status.
+6. Tariff Settings: first-hour rate, additional-hour rate, grace period and rounding policy.
+7. Reports: daily totals and CSV export.
+8. Receipt: plate, entry/exit timestamps, duration, tariff breakdown and final amount.
+OCR REQUIREMENTS
+Request camera permission; capture an image; run OCR; normalize the candidate; validate likely
+registration formats without unnecessarily rejecting special registrations; allow manual
+correction; show an error when no usable text is found. Never create a transaction
+automatically from uncertain OCR. OCR is not dedicated plate detection, so keep this
+limitation clear.
+TRANSACTION LOGIC
+At entry, store a timestamp and create an ACTIVE session. Prevent duplicate active sessions
+for the same plate. At exit, find the active session, record exit timestamp, calculate
+duration and fee from configured rules, show a breakdown, save the final amount and mark the
+session COMPLETED. Prevent duplicate exit processing. Handle overnight parking and invalid
+timestamps. Preserve completed amounts when tariffs change.
+DATABASE
+Create parking_sessions, tariff_settings and payments tables with primary keys, appropriate
+foreign keys, constraints and indexes. Keep payment status separate from session status. Save
+the tariff used for each completed transaction or an equivalent tariff snapshot.
+QUALITY
+Core features must work offline and persist across app restarts. Add loading states,
+validation, permission-denial handling, empty states and error messages. Use real database
+values, not hardcoded dashboard totals. Add tests for billing, duplicate entry, missing active
+session, overnight parking and repeated exit.
+DELIVERY
+Work in stages: (1) inspect environment and create project, (2) UI/database, (3) billing, (4)
+camera/OCR, (5) reports, (6) physical-device testing, (7) release APK. After each stage, run
+relevant checks and report implemented features, incomplete items and errors. Do not claim
+success without testing. Deliver Flutter source, working APK, README/build instructions,
+database schema, architecture documentation, billing tests and known limitations. Prioritize a
+reliable MVP over unnecessary complexity.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 13
+9. Build and Install the APK
+From the Flutter project root, run:
+flutter build apk --release
+The usual output path is:
+build/app/outputs/flutter-apk/app-release.apk
+ Verify the build succeeded and confirm that the APK file exists.
+ Transfer it to your Android phone via USB, Quick Share or a trusted file-transfer method.
+ Open the APK on the phone and allow installation from that source if Android requests it.
+ Grant camera permission and test a complete entry-to-exit cycle.
+Note
+The APK does not need to be published on the Play Store for a college demonstration. Test the actual
+release build on the target Android device.
+10. Report and PPT Outline
+Report chapter
+Contents
+1. Introduction
+Problem statement, motivation, objectives and scope.
+2. Existing and proposed
+systems
+Current manual methods, limitations and proposed solution.
+3. Requirements
+Functional/non-functional requirements and feasibility.
+4. System design
+Architecture, use-case diagram, activity diagram, flowchart and database
+ER diagram.
+5. Implementation
+Stack, OCR workflow, billing algorithm and database operations.
+6. Testing and results
+Test cases, actual screenshots, outcomes and known limitations.
+7. Conclusion
+Achievements, constraints and future scope.
+Suggested 10–12 slide presentation
+Title • Problem • Objectives • Proposed solution • Architecture • Workflow • Technology stack •
+Database design • Real app screenshots • Testing results • Limitations • Future scope.
+Generated automatically
+With the Build Directive the agent creates both documents in parallel with the app (Section 24).
+11. Test Checklist and Future Scope
+☐ Entry scan creates a single active session and survives app restart.
+☐ Exit scan finds the correct session and calculates the expected amount.
+☐ Duplicate entry, unknown plate at exit and repeated exit are handled safely.
+☐ Overnight parking and tariff boundary cases return expected results.
+☐ OCR errors can be corrected manually; camera permission denial does not crash the app.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 14
+☐ Dashboard, history and reports agree with stored transactions.
+Future enhancements
+ Dedicated number-plate detection model for more accurate plate localization.
+ Cloud synchronization and multiple staff accounts.
+ UPI payment integration and digital receipts.
+ Multiple parking locations, live occupancy sensors and barrier integration.
+ Advanced analytics and role-based access control.
+Final recommendation
+Build the complete entry → persistent session → exit → billing → history workflow first. Treat camera
+OCR as the key AI feature, but keep manual correction available. If OCR integration slips, preserve a
+working app with manual entry rather than sacrificing the entire project. Use only real screenshots and
+verified test results in your final report and presentation.
+Useful official documentation
+Google Antigravity: Getting started  •  Flutter  •  Flutter Android deployment  •  Google ML Kit Text
+Recognition
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 15
+PART B
+Agent Build Specification (Sections 12–24)
+Part B is the executable specification. If anything in Part A or in the Section 8 prompt conflicts with
+Part B, Part B wins. Every decision an agent might otherwise ask about is fixed here.
+12. Agent Operating Rules
+Always
+Never
+Work autonomously from an empty folder to a
+release APK in one run.
+Ask the user a question; every decision is in Section
+13.
+Run the verification gate after each phase
+(Section 21) and read the real output.
+Claim a command passed without running it, or hide
+a failing check.
+Fix failures at the root cause; re-run the same
+command until it passes.
+Delete, skip or weaken tests, lints or constraints just
+to get green.
+Use real database values everywhere
+(dashboard, history, reports).
+Hardcode totals, add sample/seed records, or ship
+demo data.
+Keep the code minimal: only files and
+packages this spec needs.
+Add extra features, placeholder screens, TODOs,
+commented-out code, debug prints or unused
+dependencies.
+Store money as whole-rupee integers and
+times as UTC epoch milliseconds.
+Use double for money, or compute past durations
+from the current time.
+Tell the user plainly what could not be verified
+(for example: no phone connected).
+Add login, cloud, analytics, ads, Firebase or
+INTERNET permission to release builds.
+Build the project report and presentation in
+parallel with the app (Section 24).
+Invent screenshots, test results, accuracy figures or
+any other number in the report or slides.
+13. Fixed Decisions
+Topic
+Decision
+Project
+Folder smartpark_ai, Dart package smartpark_ai, application id
+com.smartpark.smartpark_ai, app label “SmartPark AI”. Android only.
+Language / UI
+Flutter stable + Dart (null-safe), Material 3, light theme, seed colour #0E8C7F, portrait
+only, minimum 48 dp tap targets, scrollable forms (no keyboard overflow).
+State
+management
+provider (ChangeNotifier). No code generation anywhere.
+Database
+sqflite + path + path_provider. Hand-written SQL; no Drift/build_runner (fewer failure
+points). File: smartpark.db, version 1.
+Camera
+image_picker with ImageSource.camera (opens the system camera app, so no
+CAMERA permission is declared). Cancelled capture, null result or exception shows a
+friendly message and manual entry stays available.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 16
+Topic
+Decision
+OCR
+google_mlkit_text_recognition, Latin script only, run on the captured file. Close the
+recogniser after use.
+Other packages
+intl (date formatting), share_plus (CSV and receipt text sharing). Dev:
+sqflite_common_ffi (database tests).
+Money
+Whole rupees (int), shown as ₹70. Currency is not configurable.
+Time
+Stored as UTC epoch milliseconds; displayed in device local time as “dd MMM yyyy,
+hh:mm a”. “Today” = local midnight to next local midnight.
+Plate storage
+Normalized: uppercase A–Z and 0–9 only (Section 17).
+Vehicle category
+CAR, BIKE or OTHER. Stored and shown only; it does not change the price.
+Default tariff
+First hour ₹30, additional hour ₹20, grace 10 minutes, rounding STARTED_HOUR,
+capacity 50.
+Release signing
+Keep Flutter's default (debug-signed release) so the APK installs for a college demo. Do
+not create a keystore.
+Versions
+Install packages with flutter pub add and keep what the resolver picks.
+google_mlkit_text_recognition is currently ^0.16.0 on pub.dev. Do not run blanket
+major-version upgrades.
+Documentation
+Project report as .docx (plus a PDF export if a converter is available) and presentation
+as .pptx, both in docs/, produced in parallel with the build (Section 24).
+14. Environment and Project Setup
+Run these steps in order in an empty directory named smartpark_ai.
+1.  Preflight. flutter --version and flutter doctor -v. The Android toolchain must be healthy.
+ If Flutter or the Android SDK is missing and cannot be installed, stop and report exactly what is
+missing; do not fake a build.
+2.  Create.
+ 
+flutter create --org com.smartpark --project-name smartpark_ai --platforms=android .
+3. Add packages (let the resolver pick versions):
+flutter pub add provider sqflite path path_provider intl image_picker share_plus
+flutter pub add google_mlkit_text_recognition
+flutter pub add --dev sqflite_common_ffi
+4. Android configuration (edit android/app/build.gradle or build.gradle.kts, whichever exists):
+ Make sure minSdk is at least 21 (required by ML Kit). If the template already uses
+flutter.minSdkVersion and that is 21 or higher, leave it.
+ In android/app/src/main/AndroidManifest.xml set android:label to “SmartPark AI”. Do not add
+CAMERA or INTERNET permissions.
+ If Gradle reports a minSdk, Java or Android-licence problem, follow the message (for example
+flutter doctor --android-licenses). Do not hand-edit Gradle/AGP versions unless the error demands
+it.
+5. Clean the template. Delete the default counter test (test/widget_test.dart) because it fails once
+main.dart is replaced. Replace the boilerplate README. Keep analysis_options.yaml with the default
+flutter_lints and fix every warning.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 17
+15. Project Structure
+lib/
+  main.dart init binding, lock portrait, open DB, runApp
+  app.dart MaterialApp, theme, home shell
+  core/ constants, formatters (money, date, duration), exceptions
+  models/ parking_session, tariff, payment, bill_breakdown, daily_summary
+  data/ app_database (open, create, migrations), repositories
+  services/ billing_service, plate_service, ocr_service,
+                             parking_service, csv_service
+  providers/ parking_provider (revision counter + actions)
+  screens/ home_shell, dashboard, entry, exit, active, history,
+                             tariff, reports, receipt
+  widgets/ only shared widgets that are used in 2+ screens
+test/ billing, plate, parking_service (database) tests
+README.md setup, build, schema, architecture, tests, limitations
+docs/ report and presentation (Section 24); not part of the app
+  SmartPark_AI_Report.docx
+  SmartPark_AI_Presentation.pptx
+  screenshots/ real device screenshots only
+  tools/ optional generator scripts, never inside lib/
+Keep UI free of SQL and billing maths. Screens call the provider; the provider calls services; services
+call repositories. Any screen that shows stored data must reload after an entry, exit, payment or
+tariff change (for example via a revision counter), because bottom-navigation tabs stay alive.
+16. Database Schema (exact)
+Enable foreign keys in onConfigure (PRAGMA foreign_keys = ON). Create everything in onCreate.
+Two columns were added to Part A's design: category (entry screen) and capacity (dashboard
+occupancy).
+CREATE TABLE tariff_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  first_hour_rate INTEGER NOT NULL CHECK (first_hour_rate >= 0),
+  additional_hour_rate INTEGER NOT NULL CHECK (additional_hour_rate >= 0),
+  grace_minutes INTEGER NOT NULL CHECK (grace_minutes >= 0),
+  rounding_rule TEXT NOT NULL CHECK (rounding_rule IN ('STARTED_HOUR','FULL_HOUR')),
+  capacity INTEGER NOT NULL CHECK (capacity >= 1),
+  updated_at INTEGER NOT NULL
+);
+-- insert exactly one row: id=1, 30, 20, 10, 'STARTED_HOUR', 50, now
+CREATE TABLE parking_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plate_number TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'CAR' CHECK (category IN ('CAR','BIKE','OTHER')),
+  entry_time INTEGER NOT NULL,
+  exit_time INTEGER,
+  duration_minutes INTEGER,
+  amount INTEGER,
+  status TEXT NOT NULL CHECK (status IN ('ACTIVE','COMPLETED')),
+  tariff_snapshot TEXT,
+  CHECK (
+    (status = 'ACTIVE' AND exit_time IS NULL AND amount IS NULL) OR
+    (status = 'COMPLETED' AND exit_time IS NOT NULL AND amount IS NOT NULL
+       AND duration_minutes IS NOT NULL AND tariff_snapshot IS NOT NULL
+       AND exit_time >= entry_time)
+  )
+);
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 18
+CREATE UNIQUE INDEX ux_active_plate ON parking_sessions(plate_number)
+  WHERE status = 'ACTIVE';
+CREATE INDEX ix_sessions_entry ON parking_sessions(entry_time);
+CREATE INDEX ix_sessions_exit ON parking_sessions(exit_time);
+CREATE TABLE payments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id INTEGER NOT NULL UNIQUE
+    REFERENCES parking_sessions(id) ON DELETE RESTRICT,
+  amount INTEGER NOT NULL CHECK (amount >= 0),
+  payment_method TEXT NOT NULL CHECK (payment_method IN ('CASH','UPI','OTHER')),
+  payment_status TEXT NOT NULL CHECK (payment_status IN ('UNPAID','PAID')),
+  paid_at INTEGER
+);
+CREATE INDEX ix_payments_paid_at ON payments(paid_at);
+tariff_snapshot is JSON: {"first_hour_rate":30,"additional_hour_rate":20,"grace_minutes":10,"round
+ing_rule":"STARTED_HOUR"}. The stored amount is the authority; receipts rebuild the breakdown
+from the snapshot and the stored duration.
+17. Business Rules (exact)
+17.1 Duration and billing
+durationMinutes(entryMs, exitMs):
+  if exitMs < entryMs: throw InvalidTimestampException
+  return (exitMs - entryMs) ~/ 60000 // integer division
+calculateCharge(durationMinutes, tariff):
+  if durationMinutes <= tariff.graceMinutes: return 0
+  extra = max(0, durationMinutes - 60)
+  hours = STARTED_HOUR ? (extra + 59) ~/ 60 // ceiling
+                       : extra ~/ 60 // FULL_HOUR (floor)
+  return tariff.firstHourRate + hours * tariff.additionalHourRate
+The breakdown object holds: durationMinutes, graceApplied, firstHourCharge, additionalHours,
+additionalHourRate, additionalCharge, total. When grace applies, every charge is 0. These vectors
+(tariff 30 / 20 / grace 10) are mandatory tests:
+Duration (min)
+STARTED_HOUR
+FULL_HOUR
+Case
+0
+₹0
+₹0
+Instant exit
+10
+₹0
+₹0
+Exactly at grace
+11
+₹30
+₹30
+Just over grace
+60
+₹30
+₹30
+Exactly one hour
+61
+₹50
+₹30
+One hour plus one minute
+119
+₹50
+₹30
+Just under two hours
+120
+₹50
+₹50
+Exactly two hours
+121
+₹70
+₹50
+Two hours plus one minute
+145
+₹70
+₹50
+Worked example in Section 5
+520
+₹190
+₹170
+Overnight 22:30 to 07:10 next day
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 19
+Duration (min)
+STARTED_HOUR
+FULL_HOUR
+Case
+1441
+₹510
+₹490
+24 h plus one minute
+17.2 Plate normalization and validation
+ Normalize: uppercase, then remove every character that is not A–Z or 0–9. “hp 01 ab-1234”
+becomes HP01AB1234.
+ Hard rule (blocks saving): normalized length must be 4 to 12.
+ Soft warning (never blocks): text does not match either pattern below; show “Unusual format,
+please verify”.
+ Standard: ^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{4}$. Bharat series:
+^[0-9]{2}BH[0-9]{4}[A-Z]{1,2}$.
+ Normalizer tests: ‘hp 01 ab 1234’ → HP01AB1234; ‘HP-01-AB-1234’ → HP01AB1234;
+‘MH12.DE.1432’ → MH12DE1432; empty → empty. Validator: HP01AB1234, DL8CAB1234 and
+22BH1234AA match; ABC fails the hard rule; KA01 passes the hard rule with a warning.
+17.3 OCR candidate selection
+1.  Run the recogniser on the captured file. Collect every text line, in block order.
+ 
+2.  Build candidates: each line normalized, plus all lines joined and normalized (covers two-line
+ plates). Drop candidates outside 4–12 characters.
+3.  Search each candidate with the non-anchored standard and Bharat patterns; the first hit
+ becomes the suggestion.
+4.  If there is no pattern hit, use the longest remaining candidate that contains at least one letter
+ and one digit.
+5.  If nothing remains, show “No plate text found. Retake or type the number.” Always put the
+ suggestion in an editable field and list up to 4 other candidates as tappable chips.
+6.  Never save from OCR output alone; the operator must press Confirm. Do not auto-substitute
+ look-alike characters (0/O, 1/I).
+17.4 Entry, exit and payment transactions
+ Entry: in one transaction insert an ACTIVE session with entry_time = now. A second ACTIVE
+session for the same plate must fail with DuplicateActiveSessionException (enforced by
+ux_active_plate and by a pre-check for a friendly message).
+ Exit preview: find the single ACTIVE session by normalized plate. None found →
+NoActiveSessionException. Capture exitMs once when the bill is generated and use that same
+value on confirm.
+ Exit confirm (one transaction): re-read the row; UPDATE ... WHERE id = ? AND status =
+'ACTIVE' must affect exactly 1 row, otherwise throw AlreadyCompletedException (repeated tap
+or double processing). Save exit_time, duration_minutes, amount, tariff_snapshot, status =
+COMPLETED, then insert the payments row.
+ Payment at exit: switch “Payment received” (default on) plus method chips Cash / UPI. On →
+PAID with paid_at = now. Off → UNPAID, paid_at NULL. UNPAID sessions can later be marked PAID
+from the Receipt screen (method chooser).
+ Tariff change: updates the single tariff row only. Completed amounts never change. Active
+sessions are billed with the tariff in force at exit.
+ Dashboard maths: collection today = sum of PAID payments with paid_at today; entries today =
+entry_time today; exits today = exit_time today; active = ACTIVE rows; occupancy = active /
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 20
+capacity (show “12 / 50 · 24%”; over-capacity is allowed but shown in red).
+18. Screen Specifications
+Follow the workflow diagrams in Section 4A. Navigation: bottom NavigationBar with five tabs
+(Dashboard, Entry, Exit, Active, History). Reports and Tariff Settings are opened from icons in the
+Dashboard app bar. Receipt is pushed after exit and from History.
+Screen
+Must contain
+States and validation
+Dashboard
+Cards: today's collection, active vehicles,
+entries today, exits today, occupancy bar.
+Shortcut buttons Entry and Exit.
+Loading spinner; zeros (not errors) when
+empty; values always read from the
+database.
+Vehicle
+Entry
+Capture button, photo thumbnail, editable
+plate field (auto-uppercase), category
+segmented control (Car / Bike / Other), OCR
+suggestion chips, helper text “OCR can
+misread. Always verify the number.”, Retake,
+Confirm Entry.
+Spinner during OCR. Confirm enabled only
+when length is 4–12. Duplicate active plate
+→ dialog showing the existing entry time.
+Cancelled camera or OCR failure →
+message plus manual entry. Success →
+snackbar and form reset.
+Vehicle
+Exit
+Plate field with Scan button and live list of
+matching active vehicles; Find. Bill card: plate,
+category, entry time, exit time, duration, tariff
+breakdown lines, total. Payment switch and
+method chips. Confirm Exit.
+Not found → “No active session for X”.
+Confirm button disabled while saving
+(prevents double tap). Success → Receipt.
+Active
+Parking
+Search field; tiles with plate, category icon,
+entry time, live elapsed time (refresh every
+minute). Tap opens Exit with the plate
+pre-filled.
+Empty state “No vehicles parked”. Cancel
+the timer in dispose.
+History
+Chips Today / 7 days / All plus plate search;
+completed sessions newest first (limit 500).
+Tile: plate, exit date and time, amount,
+PAID/UNPAID chip. Tap opens Receipt.
+Empty state “No completed sessions”.
+Tariff
+Settings
+Integer fields: first-hour rate, additional-hour
+rate, grace minutes, capacity; rounding choice
+(Started hour / Full hours only); Save; note
+“Applies to future exits only.”
+Reject empty, negative or non-numeric
+values; capacity at least 1; grace 0–120.
+Show saved confirmation.
+Reports
+Chips Today / 7 days / 30 days; summary
+(completed count, total billed, collected,
+unpaid); daily totals list (date, exits, billed,
+collected); Export CSV button.
+Empty state. Aggregate by local date in
+Dart. Export shares a .csv file via the share
+sheet.
+Receipt
+Receipt no. (SP-000123 style), plate, category,
+entry, exit, duration, tariff breakdown, total,
+payment status/method/time. Buttons: Share
+as text; Mark as Paid (only if UNPAID).
+Breakdown rebuilt from the stored
+snapshot and duration; the stored amount
+is the displayed total.
+CSV format
+Header: id,plate,category,entry_time,exit_time,duration_minutes,amount,payment_status
+,payment_method,paid_at. Times as local “yyyy-MM-dd HH:mm”, amounts as plain integers, fields
+quoted and escaped per RFC 4180, one row per COMPLETED session in the selected range, file name
+smartpark_YYYYMMDD_HHmm.csv in the temporary directory.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 21
+19. Error Handling and UX Standards
+ Typed exceptions: DuplicateActiveSessionException, NoActiveSessionException,
+AlreadyCompletedException, InvalidTimestampException, InvalidPlateException, OcrException.
+Each maps to one plain-language message. Never show stack traces.
+ After every await, check if (!mounted) return; before using BuildContext.
+ Startup: initialise bindings, lock portrait, open the database, then runApp. If the database fails to
+open, show an error screen with a Retry button.
+ Every list has a loading state and an empty state. Every button that writes data is disabled while
+its operation runs.
+ Do not use deprecated Flutter APIs; fix analyzer deprecations (for example use Color.withValues
+instead of withOpacity).
+20. Required Automated Tests
+File
+Tests that must exist and pass
+billing_service_test
+Every vector in Section 17.1 for both rounding rules; negative duration
+throws; exit equals entry returns 0 minutes; a real overnight case built from
+DateTime(2026,3,14,22,30) to DateTime(2026,3,15,7,10) gives 520 minutes.
+plate_service_test
+Normalization and validation cases in Section 17.2; OCR candidate selection
+from fixed sample line lists (including a two-line plate and a no-text case).
+parking_service_test
+Using sqflite_common_ffi (in-memory): entry creates one ACTIVE row;
+duplicate entry throws; exit with no active session throws; exit completes with
+the expected amount and a PAID or UNPAID payment; a second exit throws
+AlreadyCompleted; changing the tariff after an exit leaves the completed
+amount unchanged; Mark as Paid works; dashboard counts agree with the
+rows; closing and reopening a file database in a temp directory keeps the
+data.
+21. Build Phases and Verification Gates
+Phase
+Work
+Gate (must pass before the next phase)
+0
+Preflight (Section 14, step 1).
+flutter doctor -v shows a working Android
+toolchain.
+1
+Create project, add packages, Android
+config, clean template.
+flutter pub get succeeds; flutter analyze reports
+no issues.
+2
+Models, database, repositories, billing, plate
+and parking services, tests.
+flutter analyze clean; flutter test passes (all
+Section 20 tests).
+3
+Provider, home shell and all screens wired to
+real data (Entry and Exit with manual plate
+input first).
+flutter analyze clean; app launches; a manual
+entry then exit cycle works.
+4
+Camera capture and OCR on Entry and Exit
+with candidate chips.
+flutter analyze clean; manual entry still works
+when OCR returns nothing.
+5
+Reports, CSV export, receipt sharing, empty
+and error states.
+flutter analyze clean; flutter test passes.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 22
+Phase
+Work
+Gate (must pass before the next phase)
+6
+Release build: flutter build apk --release.
+File
+build/app/outputs/flutter-apk/app-release.apk
+exists; report its size.
+7
+Device check if a phone or emulator is
+available (flutter devices): install and run
+Section 23 checks.
+If no device exists, state “NOT VERIFIED on a
+device” in the report.
+8
+Write README.md (setup, build, schema,
+architecture, tests, known limitations).
+Finalise the report and presentation (Section
+24).
+README commands match what was actually
+run; Section 24 checks pass.
+The documentation track in Section 24 runs alongside these phases and is checked at Phase 8.
+Final status report (required)
+ Flutter and Dart versions; list of packages added.
+ Result of flutter analyze, flutter test (number of tests) and flutter build apk --release, with the APK
+path and size.
+ Device verification status for each Section 23 item: passed, failed or not verified.
+ Known limitations (must include: OCR is not dedicated plate detection and can misread;
+debug-signed APK for demo use; single device, no sync).
+ Documentation: file names, report page count, slide count, screenshots captured versus pending,
+and the student-detail fields the user still has to fill in.
+ Any deviation from this specification and why (expected: none).
+22. Common Failure Points to Avoid
+Problem
+Prevention
+Default widget_test.dart fails
+after replacing main.dart.
+Delete it (Section 14, step 5).
+Foreign keys silently ignored in
+SQLite.
+Run PRAGMA foreign_keys = ON in onConfigure.
+Wrong duration after midnight
+or after tariff edits.
+Use stored entry/exit milliseconds only; never DateTime.now() for
+completed sessions.
+Rounding errors in money.
+Integers only; ceiling via (x + 59) ~/ 60.
+ML Kit build error mentioning
+minSdk.
+Set minSdk to at least 21 (or the value in the error message).
+Camera permission crashes.
+Use image_picker camera intent, declare no CAMERA permission,
+handle null and exceptions.
+Memory leak or crash from OCR.
+Create the TextRecognizer per scan and close it in a finally block.
+Double processing of an exit.
+Disable the button while saving and use the conditional UPDATE with
+a 1-row check.
+Stale dashboard after actions.
+Bump the provider revision after every write and reload visible
+screens.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 23
+Problem
+Prevention
+share_plus API differs between
+versions.
+Read the installed version's documentation and use its current share
+method.
+Gradle fails on first run.
+First build downloads dependencies and needs internet and several
+minutes; re-run before changing anything.
+Dependency conflict.
+Use flutter pub add so the resolver chooses compatible versions; do
+not force major upgrades.
+Report or slides contain
+invented results.
+Take numbers only from real command output and this specification;
+label anything unverified as pending.
+The two tracks overwrite each
+other's files.
+Track A owns lib/, test/, android/, pubspec and README. Track B
+owns docs/ only.
+23. Acceptance Criteria (Definition of Done)
+☐ AC-01 flutter analyze: No issues found.
+☐ AC-02 flutter test: all tests pass, including every Section 20 case.
+☐ AC-03 The release APK is built and its path is reported.
+☐ AC-04 A new install opens to an empty Dashboard (zeros, default tariff only, no sample data).
+☐ AC-05 Entry with a typed plate creates exactly one ACTIVE session that survives closing and
+reopening the app.
+☐ AC-06 Entering the same active plate again is refused with a clear message.
+☐ AC-07 Exit shows the correct breakdown (145 minutes at the default tariff shows ₹70) and saves
+a COMPLETED session.
+☐ AC-08 A second exit attempt for the same session is refused; an unknown plate shows “No active
+session”.
+☐ AC-09 Overnight stays bill correctly (Section 17.1 vector 520 gives ₹190).
+☐ AC-10 Changing the tariff does not change any completed amount.
+☐ AC-11 Camera capture fills the plate field when text is readable; cancelling, no text or a wrong
+reading never crashes and never creates a session without Confirm.
+☐ AC-12 Dashboard, History and Reports totals match the stored rows.
+☐ AC-13 CSV export opens in a spreadsheet with the Section 18 header and one row per completed
+session.
+☐ AC-14 UNPAID sessions can be marked PAID; the Dashboard collection updates.
+☐ AC-15 Airplane mode: every feature except sharing works.
+☐ AC-16 README.md exists and its commands are accurate.
+☐ AC-17 docs/SmartPark_AI_Report.docx exists with front matter, all 7 chapters, figures, tables,
+references and a table of contents.
+☐ AC-18 docs/SmartPark_AI_Presentation.pptx exists with 10 to 12 slides in the Section 24 order.
+☐ AC-19 Every number, test result and screenshot in both files is real; anything not yet verified is
+labelled “pending”.
+☐ AC-20 Neither track edited the other's files, and no documentation-generator code exists inside
+lib/.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 24
+24. Parallel Documentation Track (Report and
+Presentation)
+While the app is being built, the agent also produces the project report and the presentation, so
+everything is finished at the same moment as the APK. The two tracks run side by side (diagram
+4A.6): Track A builds the app, Track B writes the documents from the same specification and from
+real results.
+Deliverable
+Format and location
+Content source
+Project report
+docs/SmartPark_AI_Report.docx; also a PDF
+export in docs/ if a converter such as
+LibreOffice is available.
+Chapters per Section 10, plus front
+matter and appendix (24.2).
+Presentation
+docs/SmartPark_AI_Presentation.pptx, 10 to
+12 slides.
+Slide list in 24.3.
+Screenshots
+docs/screenshots/*.png, real captures only
+(for example adb exec-out screencap -p).
+Phase 7 device or emulator run.
+24.1 Execution rules
+ Parallel: if the agent can run sub-agents or parallel tasks, start Track B after Phase 1 and run it
+concurrently. Otherwise do the Track B step listed for each phase straight after that phase's gate.
+ Ownership: Track A owns lib/, test/, android/, pubspec files and README.md. Track B owns docs/
+only. Neither track edits the other's files. Track B may read the code but must not change it.
+ Tools: use the environment's document tooling or skills for DOCX and PPTX (for example
+python-docx and python-pptx). Any generator script lives in docs/tools/, never in lib/, and is not
+part of the app.
+ Truthfulness: every number (tariff, test count, APK size, device model) comes from this
+specification or from real command output. Do not invent accuracy percentages, user studies,
+benchmarks or screenshots. Describe OCR as a helper that needs manual confirmation.
+ Screenshots: before Phase 7 use clearly labelled frames reading “Screenshot pending: screen
+name”. In Phase 7 replace them with real captures. If no device or emulator exists, leave the
+labelled frames and list them in the final status report. Never draw a mock UI and present it as a
+screenshot.
+ Consistency: the report and slides must match the built app: same tariff defaults, table names,
+screen names and test results.
+ Student details: the agent cannot know names, roll numbers, guide, college or session. Use
+visible fields such as “[Student name]” and list them in the final status report so the user can fill
+them in.
+24.2 Report structure
+A4, 12 pt body text, numbered headings, captioned figures and tables, page numbers, concise
+(about 20 to 35 pages including figures).
+Part
+Contents
+Front matter
+Title page, certificate, declaration and acknowledgement (with placeholder fields),
+abstract, table of contents, list of figures, list of tables, abbreviations.
+1 Introduction
+Problem statement, motivation, objectives, scope (Section 1).
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 25
+Part
+Contents
+2 Existing and
+proposed systems
+Manual parking records and their limits; the proposed offline OCR-assisted app.
+3 Requirements
+Functional and non-functional requirements, feasibility (technical, economic,
+operational).
+4 System design
+Architecture (Section 3), use-case diagram, activity diagram, entry and exit
+flowcharts and status diagram (Section 4A), ER diagram and schema (Section 16).
+5 Implementation
+Technology stack, OCR workflow (17.3), billing algorithm and worked example
+(17.1), plate rules (17.2), transactions (17.4), key screens.
+6 Testing and
+results
+Test cases (Sections 20 and 23) with real pass or fail results, real flutter analyze
+and flutter test outcomes, APK size, device used, real screenshots, known
+limitations.
+7 Conclusion and
+future scope
+Achievements, constraints, future enhancements (Section 11).
+Back matter
+References (official Flutter, ML Kit and Antigravity documentation links from
+Section 11) and appendices: database SQL and test-case list.
+24.3 Presentation structure
+16:9, one consistent theme using the app colours from Section 13, at most 5 short bullets or one
+figure per slide, body text at least 18 pt.
+Slide
+Title
+Content
+1
+Title
+Project name, subtitle, student, guide and college placeholders.
+2
+Problem
+Manual records, arithmetic errors, no searchable history.
+3
+Objectives
+Offline Android app, OCR-assisted entry, deterministic billing, reports.
+4
+Proposed solution
+One-sentence summary and the core entry to exit workflow.
+5
+Architecture
+Layered diagram from Section 3.
+6
+Workflow
+Condensed entry and exit flowcharts from Section 4A.
+7
+Technology stack
+Flutter, ML Kit, SQLite, provider, Google Antigravity.
+8
+Database design
+ER diagram of the three tables.
+9
+Real app
+screenshots
+Four to six real screenshots (Dashboard, Entry, Exit, Receipt, History,
+Reports).
+10
+Testing results
+Real analyze and test results and the device test table.
+11
+Limitations
+OCR is not dedicated plate detection; single device; demo-signed APK; no
+sync.
+12
+Future scope
+Enhancements from Section 11.
+
+--- PAGE ---
+SMARTPARK AI
+Major Project Plan  •  B.Tech CSE, 7th Semester
+AI-Assisted Mobile Parking Management System
+Page 26
+24.4 Documentation work per phase
+Build
+phase
+Track B work (documents)
+0 to 1
+Create docs/ and docs/screenshots/. Report skeleton with front matter, all chapter headings
+and table of contents. Presentation with 12 titled slides and the theme. Write chapters 1 and
+2.
+2
+Write chapters 3 and 4. Produce figures: architecture, use-case, activity, entry and exit
+flowcharts, status diagram, ER diagram. Fill slides 1 to 5 and 8.
+3 to 4
+Write chapter 5 (stack, OCR workflow, billing algorithm with the 145-minute example,
+transactions). Fill slides 6 and 7.
+5 to 6
+Write chapter 6 using real flutter analyze, flutter test and flutter build apk --release output.
+Fill slides 10 and 11.
+7
+Capture real screenshots of all eight screens and one full entry-to-exit cycle. Insert them into
+chapter 6 and slide 9. Record the device model and Android version.
+8
+Write chapter 7 and references. Refresh the table of contents and figure lists. Export the PDF
+if possible. Run the checks below.
+24.5 Final documentation checks (Phase 8)
+ Both files open without error; the report has all 7 chapters, a table of contents, numbered and
+captioned figures, and the slide count is 10 to 12.
+ No empty image frames: each is either a real screenshot or a labelled “pending” frame.
+ No text or image overflows a slide or page. If a renderer is available, convert pages and slides to
+images and inspect them.
+ Numbers match the app and the real command output; the only remaining placeholders are the
+student-detail fields.
