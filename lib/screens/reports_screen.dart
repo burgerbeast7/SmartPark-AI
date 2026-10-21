@@ -6,6 +6,8 @@ import '../core/formatters.dart';
 import '../models/daily_summary.dart';
 import '../providers/parking_provider.dart';
 import '../services/csv_service.dart';
+import '../widgets/ambient_background.dart';
+import '../widgets/glass_container.dart';
 
 enum ReportTimeWindow { today, sevenDays, thirtyDays }
 
@@ -79,7 +81,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(csvFile.path)],
-          text: 'SmartPark AI Transaction Report',
+          text: 'SmartPark AI Transaction Report • ${AppConstants.copyrightShort}',
         ),
       );
     } catch (e) {
@@ -97,8 +99,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final summary = _summary ?? ReportSummary.empty();
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('Reports & Analytics'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Reports & Analytics',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: -0.3),
+        ),
         actions: [
           IconButton(
             icon: _isExporting
@@ -113,112 +121,101 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Filter Chips
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              children: [
-                FilterChip(
-                  label: const Text('Today'),
-                  selected: _timeWindow == ReportTimeWindow.today,
-                  onSelected: (val) {
-                    if (val) {
-                      setState(() => _timeWindow = ReportTimeWindow.today);
-                      _loadReports();
-                    }
-                  },
+      body: AmbientBackground(
+        child: Column(
+          children: [
+            // Filter Pills inside GlassContainer
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16.0, 6.0, 16.0, 10.0),
+              child: GlassContainer(
+                borderRadius: 16,
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  children: [
+                    _buildTimeTab('Today', ReportTimeWindow.today),
+                    const SizedBox(width: 4),
+                    _buildTimeTab('7 Days', ReportTimeWindow.sevenDays),
+                    const SizedBox(width: 4),
+                    _buildTimeTab('30 Days', ReportTimeWindow.thirtyDays),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                FilterChip(
-                  label: const Text('Last 7 Days'),
-                  selected: _timeWindow == ReportTimeWindow.sevenDays,
-                  onSelected: (val) {
-                    if (val) {
-                      setState(() => _timeWindow = ReportTimeWindow.sevenDays);
-                      _loadReports();
-                    }
-                  },
-                ),
-                const SizedBox(width: 8),
-                FilterChip(
-                  label: const Text('Last 30 Days'),
-                  selected: _timeWindow == ReportTimeWindow.thirtyDays,
-                  onSelected: (val) {
-                    if (val) {
-                      setState(() => _timeWindow = ReportTimeWindow.thirtyDays);
-                      _loadReports();
-                    }
-                  },
-                ),
-              ],
+              ),
             ),
-          ),
 
-          // Content
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : RefreshIndicator(
-                    onRefresh: _loadReports,
-                    child: ListView(
-                      padding: const EdgeInsets.all(16.0),
-                      children: [
-                        // Summary Card
-                        Card(
-                          elevation: 0,
-                          color: AppConstants.primarySeedColor.withValues(alpha: 0.08),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            side: BorderSide(color: AppConstants.primarySeedColor.withValues(alpha: 0.3)),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
+            // Content
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : RefreshIndicator(
+                      onRefresh: _loadReports,
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 32.0),
+                        children: [
+                          // Financial Summary Glass Card
+                          GlassContainer(
+                            borderRadius: 22,
+                            padding: const EdgeInsets.all(18.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Financial Summary',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppConstants.primarySeedColor,
-                                  ),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(7),
+                                      decoration: BoxDecoration(
+                                        color: AppConstants.primarySeedColor.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.analytics_rounded,
+                                        size: 18,
+                                        color: AppConstants.primarySeedColor,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      'Financial Overview',
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 18),
                                 Row(
                                   children: [
                                     Expanded(
                                       child: _buildMetricTile(
                                         'Completed Exits',
                                         '${summary.completedCount}',
-                                        Colors.blue.shade700,
+                                        const Color(0xFF0284C7),
                                       ),
                                     ),
                                     Expanded(
                                       child: _buildMetricTile(
                                         'Total Billed',
                                         AppFormatters.formatCurrency(summary.totalBilled),
-                                        Colors.purple.shade700,
+                                        const Color(0xFF6366F1),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 14),
                                 Row(
                                   children: [
                                     Expanded(
                                       child: _buildMetricTile(
                                         'Collected',
                                         AppFormatters.formatCurrency(summary.totalCollected),
-                                        Colors.green.shade700,
+                                        const Color(0xFF10B981),
                                       ),
                                     ),
                                     Expanded(
                                       child: _buildMetricTile(
                                         'Pending / Unpaid',
                                         AppFormatters.formatCurrency(summary.totalUnpaid),
-                                        Colors.orange.shade800,
+                                        const Color(0xFFF59E0B),
                                       ),
                                     ),
                                   ],
@@ -226,100 +223,217 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               ],
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
+                          const SizedBox(height: 16),
 
-                        // Export CSV Action Card
-                        FilledButton.tonalIcon(
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(50),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          // Export CSV Button with subtle glow
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppConstants.primarySeedColor.withValues(alpha: 0.25),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size.fromHeight(52),
+                                backgroundColor: AppConstants.primarySeedColor,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              icon: const Icon(Icons.file_download_rounded),
+                              label: const Text(
+                                'Export RFC 4180 CSV via Share Sheet',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              onPressed: _isExporting ? null : _exportCsv,
+                            ),
                           ),
-                          icon: const Icon(Icons.file_download_rounded),
-                          label: const Text('Export RFC 4180 CSV via Share Sheet'),
-                          onPressed: _isExporting ? null : _exportCsv,
-                        ),
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-                        // Daily Totals Section
-                        Text(
-                          'Daily Breakdown',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
+                          // Daily Totals Section
+                          Text(
+                            'Daily Breakdown',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
 
-                        if (summary.dailyRows.isEmpty) ...[
-                          Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 36.0),
-                              child: Text(
-                                'No completed sessions in this date range.',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
+                          if (summary.dailyRows.isEmpty) ...[
+                            GlassContainer(
+                              borderRadius: 20,
+                              padding: const EdgeInsets.symmetric(vertical: 36.0, horizontal: 20.0),
+                              child: Center(
+                                child: Text(
+                                  'No completed sessions in this date range.',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ] else ...[
-                          Card(
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              side: BorderSide(color: theme.colorScheme.outlineVariant),
-                            ),
-                            child: ListView.separated(
+                          ] else ...[
+                            ListView.separated(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: summary.dailyRows.length,
-                              separatorBuilder: (_, _) => const Divider(height: 1),
+                              separatorBuilder: (_, _) => const SizedBox(height: 8),
                               itemBuilder: (ctx, idx) {
                                 final row = summary.dailyRows[idx];
-                                return ListTile(
-                                  title: Text(row.dateString, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  subtitle: Text('${row.exitsCount} exits • Collected: ₹${row.totalCollected}'),
-                                  trailing: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                return GlassContainer(
+                                  borderRadius: 16,
+                                  padding: const EdgeInsets.all(14),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        AppFormatters.formatCurrency(row.totalBilled),
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            row.dateString,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            '${row.exitsCount} exits • Collected: ₹${row.totalCollected}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: theme.colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      if (row.totalUnpaid > 0)
-                                        Text(
-                                          'Unpaid: ₹${row.totalUnpaid}',
-                                          style: TextStyle(color: Colors.orange.shade800, fontSize: 11),
-                                        ),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            AppFormatters.formatCurrency(row.totalBilled),
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 15,
+                                              color: AppConstants.primarySeedColor,
+                                            ),
+                                          ),
+                                          if (row.totalUnpaid > 0)
+                                            Text(
+                                              'Unpaid: ₹${row.totalUnpaid}',
+                                              style: const TextStyle(
+                                                color: Color(0xFFD97706),
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 );
                               },
                             ),
+                          ],
+                          const SizedBox(height: 28),
+
+                          // Kunal Chauhan Copyright Footer
+                          Center(
+                            child: Text(
+                              'SmartPark AI • ${AppConstants.copyrightNotice}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.2,
+                                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                              ),
+                            ),
                           ),
                         ],
-                      ],
+                      ),
                     ),
-                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeTab(String label, ReportTimeWindow window) {
+    final isSelected = _timeWindow == window;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (!isSelected) {
+            setState(() => _timeWindow = window);
+            _loadReports();
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? AppConstants.primarySeedColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppConstants.primarySeedColor.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
-        ],
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildMetricTile(String label, String value, Color color) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.3,
+            color: color,
+          ),
         ),
       ],
     );
   }
 }
+

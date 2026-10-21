@@ -6,6 +6,8 @@ import '../core/formatters.dart';
 import '../models/parking_session.dart';
 import '../providers/parking_provider.dart';
 import '../services/billing_service.dart';
+import '../widgets/ambient_background.dart';
+import '../widgets/glass_container.dart';
 
 class ReceiptScreen extends StatefulWidget {
   final int sessionId;
@@ -44,7 +46,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Mark Payment as Paid'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Mark Payment as Paid', style: TextStyle(fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,6 +81,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               child: const Text('Cancel'),
             ),
             FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppConstants.primarySeedColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
               onPressed: () => Navigator.pop(ctx, true),
               child: const Text('Confirm Paid'),
             ),
@@ -118,6 +125,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       text.writeln('Payment Method: ${s.payment?.paymentMethod}');
       text.writeln('Paid At: ${AppFormatters.formatDateTime(s.payment?.paidAt)}');
     }
+    text.writeln('------------------------------------------');
+    text.writeln('Designed & Developed by Kunal Chauhan');
+    text.writeln('© 2026 Kunal Chauhan. All rights reserved.');
     text.writeln('==========================================');
 
     SharePlus.instance.share(
@@ -131,18 +141,33 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Parking Receipt')),
-        body: const Center(child: CircularProgressIndicator()),
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: const Text('Parking Receipt'),
+        ),
+        body: const AmbientBackground(
+          child: Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
     if (_session == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Parking Receipt')),
-        body: const Center(child: Text('Receipt not found.')),
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: const Text('Parking Receipt'),
+        ),
+        body: const AmbientBackground(
+          child: Center(child: Text('Receipt not found.')),
+        ),
       );
     }
 
@@ -155,8 +180,14 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     final isPaid = s.payment?.paymentStatus == AppConstants.paymentStatusPaid;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text(AppFormatters.formatReceiptNumber(s.id!)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          AppFormatters.formatReceiptNumber(s.id!),
+          style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: -0.3),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.share_rounded),
@@ -165,157 +196,292 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
+      body: AmbientBackground(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          child: Column(
+            children: [
+              GlassContainer(
+                borderRadius: 22,
+                padding: const EdgeInsets.all(22.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header
+                    // Header Brand & Status
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'SMARTPARK AI',
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppConstants.primarySeedColor,
-                              ),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0xFF0E8C7F),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'SMARTPARK AI',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 12,
+                                    letterSpacing: 1.2,
+                                    color: AppConstants.primarySeedColor,
+                                  ),
+                                ),
+                              ],
                             ),
+                            const SizedBox(height: 4),
                             Text(
                               AppFormatters.formatReceiptNumber(s.id!),
-                              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
+                              ),
                             ),
                           ],
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isPaid ? Colors.green.shade50 : Colors.orange.shade50,
+                            color: isPaid
+                                ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                : const Color(0xFFF59E0B).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: isPaid ? Colors.green : Colors.orange),
+                            border: Border.all(
+                              color: isPaid
+                                  ? const Color(0xFF10B981).withValues(alpha: 0.6)
+                                  : const Color(0xFFF59E0B).withValues(alpha: 0.6),
+                              width: 1.2,
+                            ),
                           ),
                           child: Text(
                             isPaid ? 'PAID' : 'UNPAID',
                             style: TextStyle(
-                              color: isPaid ? Colors.green.shade800 : Colors.orange.shade900,
-                              fontWeight: FontWeight.bold,
+                              color: isPaid ? const Color(0xFF059669) : const Color(0xFFD97706),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 11,
+                              letterSpacing: 0.6,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const Divider(height: 32),
+                    const SizedBox(height: 20),
+                    Divider(
+                      height: 1,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.black.withValues(alpha: 0.08),
+                    ),
+                    const SizedBox(height: 16),
 
                     // Plate & Category
-                    _buildRow('Vehicle Number', s.plateNumber, isBold: true),
-                    const SizedBox(height: 8),
+                    _buildRow('Vehicle Number', s.plateNumber, isBold: true, isHighlight: true),
+                    const SizedBox(height: 10),
                     _buildRow('Category', s.category),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     _buildRow('Entry Time', AppFormatters.formatDateTime(s.entryTime)),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     _buildRow('Exit Time', AppFormatters.formatDateTime(s.exitTime)),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     _buildRow('Duration', AppFormatters.formatDuration(s.durationMinutes ?? 0)),
 
-                    const Divider(height: 32),
+                    const SizedBox(height: 16),
+                    Divider(
+                      height: 1,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.black.withValues(alpha: 0.08),
+                    ),
+                    const SizedBox(height: 16),
 
                     // Breakdown lines
                     Text(
                       'Tariff Breakdown',
-                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                      ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     if (breakdown.graceApplied) ...[
                       _buildRow('Grace Period Applied', '₹0', isMuted: true),
                     ] else ...[
                       _buildRow('First Hour Charge', '₹${breakdown.firstHourCharge}'),
                       if (breakdown.additionalHours > 0) ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         _buildRow(
                           'Additional Hours (${breakdown.additionalHours}h @ ₹${breakdown.additionalHourRate}/h)',
                           '₹${breakdown.additionalCharge}',
                         ),
                       ],
                     ],
-                    const Divider(height: 24),
 
-                    // Total
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Total Amount',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    const SizedBox(height: 18),
+                    // Total Emerald Highlight Glass Box
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppConstants.primarySeedColor.withValues(alpha: isDark ? 0.25 : 0.12),
+                            const Color(0xFF0EA5E9).withValues(alpha: isDark ? 0.15 : 0.06),
+                          ],
                         ),
-                        Text(
-                          AppFormatters.formatCurrency(s.amount ?? 0),
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppConstants.primarySeedColor,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppConstants.primarySeedColor.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Total Amount',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      ],
+                          Text(
+                            AppFormatters.formatCurrency(s.amount ?? 0),
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: AppConstants.primarySeedColor,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
                     if (isPaid && s.payment != null) ...[
-                      const Divider(height: 32),
+                      const SizedBox(height: 18),
+                      Divider(
+                        height: 1,
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.black.withValues(alpha: 0.08),
+                      ),
+                      const SizedBox(height: 14),
                       _buildRow('Payment Method', s.payment!.paymentMethod),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       _buildRow('Paid At', AppFormatters.formatDateTime(s.payment!.paidAt)),
                     ],
+                    const SizedBox(height: 18),
+                    Divider(
+                      height: 1,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.black.withValues(alpha: 0.08),
+                    ),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Text(
+                        'SmartPark AI • ${AppConstants.developerCredit}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 22),
 
-            // Actions
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                    icon: const Icon(Icons.share_rounded),
-                    label: const Text('Share Receipt'),
-                    onPressed: _shareReceiptText,
-                  ),
-                ),
-                if (!isPaid) ...[
-                  const SizedBox(width: 12),
+              // Actions Row
+              Row(
+                children: [
                   Expanded(
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(50),
-                        backgroundColor: Colors.green.shade700,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        side: BorderSide(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.25)
+                              : Colors.black.withValues(alpha: 0.15),
+                        ),
                       ),
-                      icon: const Icon(Icons.payment_rounded),
-                      label: const Text('Mark as Paid'),
-                      onPressed: _markAsPaid,
+                      icon: const Icon(Icons.share_rounded, size: 20),
+                      label: const Text(
+                        'Share Receipt',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: _shareReceiptText,
                     ),
                   ),
+                  if (!isPaid) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.35),
+                              blurRadius: 14,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52),
+                            backgroundColor: const Color(0xFF059669),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          icon: const Icon(Icons.payment_rounded, size: 20),
+                          label: const Text(
+                            'Mark Paid',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: _markAsPaid,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 22),
+              Center(
+                child: Text(
+                  AppConstants.copyrightNotice,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildRow(String label, String value, {bool isBold = false, bool isMuted = false}) {
+  Widget _buildRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    bool isMuted = false,
+    bool isHighlight = false,
+  }) {
     final theme = Theme.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -324,16 +490,22 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           label,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: isMuted ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface,
+            fontWeight: FontWeight.w500,
           ),
         ),
         Text(
           value,
           style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            color: isMuted ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+            fontSize: isHighlight ? 16 : null,
+            letterSpacing: isHighlight ? 0.5 : null,
+            color: isHighlight
+                ? AppConstants.primarySeedColor
+                : (isMuted ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface),
           ),
         ),
       ],
     );
   }
 }
+

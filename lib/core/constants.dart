@@ -38,4 +38,10 @@ class AppConstants {
   // Plate Validation
   static const int minPlateLength = 4;
   static const int maxPlateLength = 12;
+
+  // Author & Copyright Attribution
+  static const String authorName = 'Kunal Chauhan';
+  static const String developerCredit = 'Designed & Developed by Kunal Chauhan';
+  static const String copyrightNotice = '© 2026 Kunal Chauhan. All rights reserved.';
+  static const String copyrightShort = '© Kunal Chauhan';
 }

@@ -86,6 +86,41 @@ void main() {
       expect(res.message, 'No plate text found. Retake or type the number.');
     });
 
+    test('HSRP plate with IND prefix and dealer frame text recognized', () {
+      final rawLines = ['IND MH 12 AB 1234', 'MARUTI SUZUKI PUNE'];
+      final res = PlateService.selectOcrCandidates(rawLines);
+      expect(res.suggestion, 'MH12AB1234');
+      expect(res.message, isNull);
+    });
+
+    test('Merged IND prefix on HSRP plate stripped and recognized', () {
+      final rawLines = ['INDMH12AB1234'];
+      final res = PlateService.selectOcrCandidates(rawLines);
+      expect(res.suggestion, 'MH12AB1234');
+      expect(res.message, isNull);
+    });
+
+    test('Multi-line plate with surrounding text recognized', () {
+      final rawLines = ['IND', 'DL 01', 'AB 1234', 'HONDA CITY'];
+      final res = PlateService.selectOcrCandidates(rawLines);
+      expect(res.suggestion, 'DL01AB1234');
+      expect(res.message, isNull);
+    });
+
+    test('OCR character confusion in registration number disambiguated (I -> 1)', () {
+      final rawLines = ['MH 12 AB I234'];
+      final res = PlateService.selectOcrCandidates(rawLines);
+      expect(res.suggestion, 'MH12AB1234');
+      expect(res.message, isNull);
+    });
+
+    test('OCR character confusion in Bharat series disambiguated (8H -> BH, I -> 1)', () {
+      final rawLines = ['22 8H I234 AA'];
+      final res = PlateService.selectOcrCandidates(rawLines);
+      expect(res.suggestion, '22BH1234AA');
+      expect(res.message, isNull);
+    });
+
     test('Empty list returns friendly failure message', () {
       final res = PlateService.selectOcrCandidates([]);
       expect(res.suggestion, '');

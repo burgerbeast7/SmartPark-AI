@@ -8,6 +8,7 @@ import '../core/formatters.dart';
 import '../providers/parking_provider.dart';
 import '../services/ocr_service.dart';
 import '../services/plate_service.dart';
+import '../widgets/glass_container.dart';
 
 class EntryScreen extends StatefulWidget {
   const EntryScreen({super.key});
@@ -44,6 +45,7 @@ class _EntryScreenState extends State<EntryScreen> {
   void _onPlateChanged() {
     final text = _plateController.text;
     final normalized = PlateService.normalize(text);
+
     if (text != normalized) {
       _plateController.value = TextEditingValue(
         text: normalized,
@@ -97,8 +99,12 @@ class _EntryScreenState extends State<EntryScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isOcrLoading = false);
+      final raw = e.toString();
+      final displayMessage = raw.contains('PlatformException') || raw.contains('Exception:')
+          ? 'Could not extract plate from photo. You can type the plate manually.'
+          : raw;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('OCR error: ${e.toString()}. You can type the plate manually.')),
+        SnackBar(content: Text(displayMessage)),
       );
     }
   }
@@ -174,66 +180,133 @@ class _EntryScreenState extends State<EntryScreen> {
     final isConfirmEnabled = plateLength >= 4 && plateLength <= 12 && !_isSaving && !_isOcrLoading;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('Vehicle Entry'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Vehicle Entry',
+          style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.3),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 110.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Camera Capture / Photo Thumbnail Area
             if (_capturedImagePath != null) ...[
-              Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.file(
-                      File(_capturedImagePath!),
-                      height: 180,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: FilledButton.tonalIcon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.black54,
-                        foregroundColor: Colors.white,
+              GlassContainer(
+                borderRadius: 22,
+                blur: 16,
+                padding: const EdgeInsets.all(8.0),
+                child: Stack(
+                  alignment: Alignment.topRight,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.file(
+                        File(_capturedImagePath!),
+                        height: 190,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
                       ),
-                      icon: const Icon(Icons.refresh_rounded, size: 18),
-                      label: const Text('Retake'),
-                      onPressed: _isOcrLoading || _isSaving ? null : _capturePhoto,
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-            ] else ...[
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(60),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: GlassContainer(
+                        borderRadius: 20,
+                        blur: 12,
+                        opacity: 0.8,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        onTap: _isOcrLoading || _isSaving ? null : _capturePhoto,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.refresh_rounded, size: 16, color: Colors.white),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'Retake',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                icon: const Icon(Icons.camera_alt_rounded),
-                label: const Text('Capture Plate Image', style: TextStyle(fontSize: 16)),
-                onPressed: _isOcrLoading || _isSaving ? null : _capturePhoto,
+              ),
+              const SizedBox(height: 14),
+            ] else ...[
+              GlassContainer(
+                borderRadius: 22,
+                blur: 16,
+                opacity: 0.72,
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                onTap: _isOcrLoading || _isSaving ? null : _capturePhoto,
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppConstants.primarySeedColor, Color(0xFF0284C7)],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppConstants.primarySeedColor.withValues(alpha: 0.35),
+                            blurRadius: 14,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.camera_alt_rounded, size: 30, color: Colors.white),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Scan License Plate',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Point camera at plate for automated offline recognition',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
             ],
 
             if (_isOcrLoading) ...[
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16.0),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10.0),
+                child: GlassContainer(
+                  borderRadius: 16,
+                  blur: 14,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircularProgressIndicator(),
-                      SizedBox(width: 16),
-                      Text('Recognising license plate...'),
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2.2),
+                      ),
+                      const SizedBox(width: 14),
+                      Text(
+                        'Extracting plate with ML Kit...',
+                        style: TextStyle(
+                          color: AppConstants.primarySeedColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -243,109 +316,243 @@ class _EntryScreenState extends State<EntryScreen> {
             // Alternative OCR Candidate Chips
             if (_ocrChips.isNotEmpty) ...[
               Text(
-                'Other detected candidates:',
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                'Alternative detections:',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 6),
               Wrap(
                 spacing: 8,
                 children: _ocrChips.map((chip) {
                   return ActionChip(
-                    label: Text(chip),
+                    label: Text(chip, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    side: BorderSide(color: AppConstants.primarySeedColor.withValues(alpha: 0.3)),
                     onPressed: () {
                       _plateController.text = chip;
                     },
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
             ],
 
-            // Plate Input Field
-            TextField(
-              controller: _plateController,
-              textCapitalization: TextCapitalization.characters,
-              decoration: InputDecoration(
-                labelText: 'Vehicle Registration Number *',
-                hintText: 'e.g. DL01AB1234 or 22BH1234AA',
-                prefixIcon: const Icon(Icons.pin_rounded),
-                suffixIcon: _plateController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded),
-                        onPressed: () => _plateController.clear(),
-                      )
-                    : null,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                errorText: _softWarning,
-                errorStyle: TextStyle(color: Colors.amber.shade800),
+            // Plate Input Field Glass Card
+            GlassContainer(
+              borderRadius: 18,
+              blur: 14,
+              opacity: 0.72,
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+              child: TextField(
+                controller: _plateController,
+                textCapitalization: TextCapitalization.characters,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  letterSpacing: 1.0,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Vehicle Plate Number *',
+                  hintText: 'e.g. DL01AB1234 or 22BH1234AA',
+                  hintStyle: TextStyle(
+                    fontSize: 14,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    letterSpacing: 0,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.pin_rounded,
+                    color: AppConstants.primarySeedColor.withValues(alpha: 0.85),
+                  ),
+                  suffixIcon: _plateController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 20),
+                          onPressed: () => _plateController.clear(),
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorText: _softWarning,
+                  errorStyle: TextStyle(color: Colors.amber.shade900, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             const SizedBox(height: 8),
 
             // Helper text (mandatory per Section 18)
-            Text(
-              'OCR can misread. Always verify the number.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6.0),
+              child: Text(
+                'OCR can misread. Always verify the number.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
 
-            // Vehicle Category Segmented Control
-            Text(
-              'Vehicle Category',
-              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            // Vehicle Category Glass Card
+            GlassContainer(
+              borderRadius: 18,
+              blur: 14,
+              opacity: 0.72,
+              padding: const EdgeInsets.all(14.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Vehicle Category',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _buildCategoryOption(
+                        context,
+                        label: 'Car',
+                        icon: Icons.directions_car_rounded,
+                        value: AppConstants.categoryCar,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildCategoryOption(
+                        context,
+                        label: 'Bike',
+                        icon: Icons.two_wheeler_rounded,
+                        value: AppConstants.categoryBike,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildCategoryOption(
+                        context,
+                        label: 'Other',
+                        icon: Icons.category_rounded,
+                        value: AppConstants.categoryOther,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(
-                  value: AppConstants.categoryCar,
-                  label: Text('Car'),
-                  icon: Icon(Icons.directions_car_rounded),
-                ),
-                ButtonSegment(
-                  value: AppConstants.categoryBike,
-                  label: Text('Bike'),
-                  icon: Icon(Icons.two_wheeler_rounded),
-                ),
-                ButtonSegment(
-                  value: AppConstants.categoryOther,
-                  label: Text('Other'),
-                  icon: Icon(Icons.category_rounded),
-                ),
-              ],
-              selected: {_selectedCategory},
-              onSelectionChanged: (set) {
-                setState(() => _selectedCategory = set.first);
-              },
-            ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
 
             // Confirm Entry Button
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(54),
-                backgroundColor: AppConstants.primarySeedColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                gradient: isConfirmEnabled
+                    ? const LinearGradient(
+                        colors: [AppConstants.primarySeedColor, Color(0xFF0F766E)],
+                      )
+                    : null,
+                color: isConfirmEnabled ? null : theme.colorScheme.surfaceContainerHighest,
+                boxShadow: isConfirmEnabled
+                    ? [
+                        BoxShadow(
+                          color: AppConstants.primarySeedColor.withValues(alpha: 0.38),
+                          blurRadius: 18,
+                          offset: const Offset(0, 7),
+                        ),
+                      ]
+                    : null,
               ),
-              icon: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.check_circle_rounded),
-              label: Text(
-                _isSaving ? 'Saving Entry...' : 'Confirm Entry',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  minimumSize: const Size.fromHeight(54),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                ),
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
+                      )
+                    : const Icon(Icons.check_circle_rounded, color: Colors.white),
+                label: Text(
+                  _isSaving ? 'Recording Entry...' : 'Confirm Vehicle Entry',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: isConfirmEnabled ? Colors.white : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+                ),
+                onPressed: isConfirmEnabled ? _confirmEntry : null,
               ),
-              onPressed: isConfirmEnabled ? _confirmEntry : null,
+            ),
+            const SizedBox(height: 18),
+            Center(
+              child: Text(
+                'SmartPark AI • ${AppConstants.copyrightShort}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildCategoryOption(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required String value,
+  }) {
+    final isSelected = _selectedCategory == value;
+    final theme = Theme.of(context);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedCategory = value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppConstants.primarySeedColor.withValues(alpha: 0.18)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? AppConstants.primarySeedColor
+                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 22,
+                color: isSelected ? AppConstants.primarySeedColor : theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                  color: isSelected ? AppConstants.primarySeedColor : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
+

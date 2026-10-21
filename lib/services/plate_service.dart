@@ -74,6 +74,8 @@ class PlateService {
   }
 
   /// Selects the best OCR candidate from raw extracted text lines (Section 17.3).
+  /// Resilient against extra text (e.g. "IND", brand names, frame text), multi-line plates,
+  /// and common OCR letter/digit confusions.
   static OcrSelectionResult selectOcrCandidates(List<String> rawLines) {
     if (rawLines.isEmpty) {
       return const OcrSelectionResult(
@@ -83,64 +85,151 @@ class PlateService {
       );
     }
 
-    final candidates = <String>[];
-    final seen = <String>{};
+    final patternMatches = <String>[];
+    final patternSeen = <String>{};
 
-    void addCandidate(String norm) {
+    void addPatternMatch(String? match) {
+      if (match == null || match.isEmpty) return;
+      if (match.length >= AppConstants.minPlateLength &&
+          match.length <= AppConstants.maxPlateLength &&
+          !patternSeen.contains(match)) {
+        patternSeen.add(match);
+        patternMatches.add(match);
+      }
+    }
+
+    // 1. Build prioritized search groups:
+    // Group A (Highest priority): Single lines, cleaned lines (no IND), space tokens, adjacent pairs (2-line plates)
+    final highPrioritySegments = <String>[];
+    for (var i = 0; i < rawLines.length; i++) {
+      final line = rawLines[i].trim();
+      if (line.isNotEmpty) {
+        highPrioritySegments.add(line);
+
+        // Strip leading IND if attached or spaced (HSRP badge)
+        final upper = line.toUpperCase();
+        if (upper.startsWith('IND') && upper.length > 5) {
+          highPrioritySegments.add(line.substring(3).trim());
+        }
+
+        // Space-separated tokens (e.g. "DL01AB1234" inside a noisy line)
+        final tokens = line.split(RegExp(r'\s+'));
+        if (tokens.length > 1) {
+          for (final t in tokens) {
+            final tt = t.trim();
+            if (tt.length >= 4 && tt.length <= 12) {
+              highPrioritySegments.add(tt);
+            }
+          }
+        }
+      }
+
+      // Adjacent 2-line plate combination (e.g. line 1: "DL 01", line 2: "AB 1234")
+      if (i + 1 < rawLines.length) {
+        highPrioritySegments.add('${rawLines[i]} ${rawLines[i + 1]}');
+        highPrioritySegments.add('${rawLines[i]}${rawLines[i + 1]}');
+      }
+    }
+
+    // Group B (Broader fallback): 3-line combination and all lines joined
+    final broaderSegments = <String>[];
+    for (var i = 0; i + 2 < rawLines.length; i++) {
+      broaderSegments.add('${rawLines[i]} ${rawLines[i + 1]} ${rawLines[i + 2]}');
+    }
+    broaderSegments.add(rawLines.join(' '));
+    broaderSegments.add(rawLines.join(''));
+
+    // Tier 1: Check for EXACT (anchored) plate matches in high-priority segments
+    for (final seg in highPrioritySegments) {
+      final norm = normalize(seg);
+      if (norm.isEmpty) continue;
+      if (_standardPlateRegex.hasMatch(norm) || _bharatSeriesRegex.hasMatch(norm)) {
+        addPatternMatch(norm);
+      }
+    }
+
+    // Tier 2: Search non-anchored Bharat & Standard regex in high-priority segments
+    if (patternMatches.isEmpty) {
+      for (final seg in highPrioritySegments) {
+        final norm = normalize(seg);
+        if (norm.isEmpty) continue;
+
+        final bhMatch = _nonAnchoredBharatRegex.firstMatch(norm);
+        if (bhMatch != null) {
+          addPatternMatch(bhMatch.group(0)!);
+        }
+
+        final stdMatch = _nonAnchoredStandardRegex.firstMatch(norm);
+        if (stdMatch != null) {
+          addPatternMatch(stdMatch.group(0)!);
+        }
+      }
+    }
+
+    // Tier 3: Search non-anchored patterns across broader / all-joined segments
+    if (patternMatches.isEmpty) {
+      for (final seg in broaderSegments) {
+        final norm = normalize(seg);
+        if (norm.isEmpty) continue;
+
+        final bhMatch = _nonAnchoredBharatRegex.firstMatch(norm);
+        if (bhMatch != null) {
+          addPatternMatch(bhMatch.group(0)!);
+        }
+
+        final stdMatch = _nonAnchoredStandardRegex.firstMatch(norm);
+        if (stdMatch != null) {
+          addPatternMatch(stdMatch.group(0)!);
+        }
+      }
+    }
+
+    // Tier 4: Attempt OCR character disambiguation on segments (correcting O/0, I/1, B/8, etc.)
+    if (patternMatches.isEmpty) {
+      for (final seg in [...highPrioritySegments, ...broaderSegments]) {
+        final norm = normalize(seg);
+        if (norm.length >= 7 && norm.length <= 11) {
+          final disambiguated = _attemptOcrDisambiguation(norm);
+          if (disambiguated != null) {
+            addPatternMatch(disambiguated);
+          }
+        }
+      }
+    }
+
+    // Tier 5: Collect general alphanumeric candidates (length 4..12) as fallback or chips
+    final generalCandidates = <String>[];
+    final generalSeen = <String>{};
+
+    void addGeneralCandidate(String raw) {
+      final norm = normalize(raw);
       if (norm.length >= AppConstants.minPlateLength &&
           norm.length <= AppConstants.maxPlateLength &&
-          !seen.contains(norm)) {
-        seen.add(norm);
-        candidates.add(norm);
+          !generalSeen.contains(norm) &&
+          !patternSeen.contains(norm)) {
+        generalSeen.add(norm);
+        generalCandidates.add(norm);
       }
     }
 
-    // 1. Each line normalized
-    for (final line in rawLines) {
-      final norm = normalize(line);
-      addCandidate(norm);
+    for (final seg in [...highPrioritySegments, ...broaderSegments]) {
+      addGeneralCandidate(seg);
     }
 
-    // 2. All lines joined and normalized (covers two-line plates)
-    final allJoined = normalize(rawLines.join(''));
-    addCandidate(allJoined);
+    // Filter general candidates for at least one letter and one digit
+    final alphanumericCandidates = generalCandidates.where((c) {
+      return _letterRegex.hasMatch(c) && _digitRegex.hasMatch(c);
+    }).toList();
+    alphanumericCandidates.sort((a, b) => b.length.compareTo(a.length));
 
-    if (candidates.isEmpty) {
-      return const OcrSelectionResult(
-        suggestion: '',
-        alternativeChips: [],
-        message: 'No plate text found. Retake or type the number.',
-      );
-    }
-
-    // 3. Search each candidate with non-anchored standard and Bharat patterns
+    // Determine best suggestion
     String? bestSuggestion;
-    for (final c in candidates) {
-      final stdMatch = _nonAnchoredStandardRegex.firstMatch(c);
-      if (stdMatch != null) {
-        bestSuggestion = stdMatch.group(0)!;
-        break;
-      }
-      final bhMatch = _nonAnchoredBharatRegex.firstMatch(c);
-      if (bhMatch != null) {
-        bestSuggestion = bhMatch.group(0)!;
-        break;
-      }
+    if (patternMatches.isNotEmpty) {
+      bestSuggestion = patternMatches.first;
+    } else if (alphanumericCandidates.isNotEmpty) {
+      bestSuggestion = alphanumericCandidates.first;
     }
 
-    // 4. If no pattern hit, use the longest remaining candidate containing at least one letter and one digit
-    if (bestSuggestion == null) {
-      final alphanumericCandidates = candidates.where((c) {
-        return _letterRegex.hasMatch(c) && _digitRegex.hasMatch(c);
-      }).toList();
-
-      if (alphanumericCandidates.isNotEmpty) {
-        alphanumericCandidates.sort((a, b) => b.length.compareTo(a.length));
-        bestSuggestion = alphanumericCandidates.first;
-      }
-    }
-
-    // 5. If still nothing remains
     if (bestSuggestion == null) {
       return const OcrSelectionResult(
         suggestion: '',
@@ -149,16 +238,153 @@ class PlateService {
       );
     }
 
-    // List up to 4 other candidates as tappable chips
-    final otherCandidates = candidates
-        .where((c) => c != bestSuggestion)
-        .take(4)
-        .toList();
+    // Build alternative chips (up to 4)
+    final alternativeChips = <String>[];
+    for (final p in patternMatches) {
+      if (p != bestSuggestion && !alternativeChips.contains(p)) {
+        alternativeChips.add(p);
+      }
+      if (alternativeChips.length >= 4) break;
+    }
+    if (alternativeChips.length < 4) {
+      for (final a in alphanumericCandidates) {
+        if (a != bestSuggestion && !alternativeChips.contains(a)) {
+          alternativeChips.add(a);
+        }
+        if (alternativeChips.length >= 4) break;
+      }
+    }
 
     return OcrSelectionResult(
       suggestion: bestSuggestion,
-      alternativeChips: otherCandidates,
+      alternativeChips: alternativeChips,
       message: null,
     );
+  }
+
+  /// Attempts common OCR substitutions (O/0, I/1, B/8, S/5, Z/2) to recover plates
+  /// that failed due to single-character recognition confusions.
+  static String? _attemptOcrDisambiguation(String candidate) {
+    if (candidate.length < 7 || candidate.length > 11) return null;
+
+    if (_standardPlateRegex.hasMatch(candidate) || _bharatSeriesRegex.hasMatch(candidate)) {
+      return candidate;
+    }
+
+    // 1. Try correcting Bharat series: [2 digits]BH[4 digits][1-2 letters]
+    if (candidate.contains('BH') || candidate.contains('8H')) {
+      final bhCandidate = candidate.replaceAll('8H', 'BH');
+      final chars = bhCandidate.split('');
+      if (chars.length >= 9 && chars.length <= 10) {
+        chars[0] = _toDigit(chars[0]);
+        chars[1] = _toDigit(chars[1]);
+        chars[2] = 'B';
+        chars[3] = 'H';
+        for (var i = 4; i < 8; i++) {
+          chars[i] = _toDigit(chars[i]);
+        }
+        for (var i = 8; i < chars.length; i++) {
+          chars[i] = _toLetter(chars[i]);
+        }
+        final corrected = chars.join('');
+        if (_bharatSeriesRegex.hasMatch(corrected)) {
+          return corrected;
+        }
+      }
+    }
+
+    // 2. Try correcting Standard plate: [2 letters][1-2 digits][0-3 letters][4 digits]
+    final len = candidate.length;
+    final chars = candidate.split('');
+    chars[0] = _toLetter(chars[0]);
+    chars[1] = _toLetter(chars[1]);
+    for (var i = len - 4; i < len; i++) {
+      chars[i] = _toDigit(chars[i]);
+    }
+
+    if (len == 10) {
+      // e.g. DL01AB1234
+      final v = List<String>.from(chars);
+      v[2] = _toDigit(v[2]);
+      v[3] = _toDigit(v[3]);
+      v[4] = _toLetter(v[4]);
+      v[5] = _toLetter(v[5]);
+      final res = v.join('');
+      if (_standardPlateRegex.hasMatch(res)) return res;
+    } else if (len == 9) {
+      // Case A: [2 letters][2 digits][1 letter][4 digits] e.g. DL01A1234
+      final v1 = List<String>.from(chars);
+      v1[2] = _toDigit(v1[2]);
+      v1[3] = _toDigit(v1[3]);
+      v1[4] = _toLetter(v1[4]);
+      final r1 = v1.join('');
+      if (_standardPlateRegex.hasMatch(r1)) return r1;
+
+      // Case B: [2 letters][1 digit][2 letters][4 digits] e.g. DL1AB1234
+      final v2 = List<String>.from(chars);
+      v2[2] = _toDigit(v2[2]);
+      v2[3] = _toLetter(v2[3]);
+      v2[4] = _toLetter(v2[4]);
+      final r2 = v2.join('');
+      if (_standardPlateRegex.hasMatch(r2)) return r2;
+    } else if (len == 8) {
+      // Case A: [2 letters][1 digit][1 letter][4 digits] e.g. DL1A1234
+      final v1 = List<String>.from(chars);
+      v1[2] = _toDigit(v1[2]);
+      v1[3] = _toLetter(v1[3]);
+      final r1 = v1.join('');
+      if (_standardPlateRegex.hasMatch(r1)) return r1;
+
+      // Case B: [2 letters][2 digits][0 letters][4 digits] e.g. DL011234
+      final v2 = List<String>.from(chars);
+      v2[2] = _toDigit(v2[2]);
+      v2[3] = _toDigit(v2[3]);
+      final r2 = v2.join('');
+      if (_standardPlateRegex.hasMatch(r2)) return r2;
+    }
+
+    return null;
+  }
+
+  static String _toDigit(String ch) {
+    switch (ch) {
+      case 'O':
+      case 'o':
+      case 'Q':
+      case 'D':
+        return '0';
+      case 'I':
+      case 'i':
+      case 'L':
+      case 'l':
+        return '1';
+      case 'Z':
+      case 'z':
+        return '2';
+      case 'S':
+      case 's':
+        return '5';
+      case 'B':
+        return '8';
+      default:
+        return ch;
+    }
+  }
+
+  static String _toLetter(String ch) {
+    switch (ch) {
+      case '0':
+        return 'O';
+      case '1':
+        return 'I';
+      case '2':
+        return 'Z';
+      case '5':
+        return 'S';
+      case '8':
+        return 'B';
+      default:
+        return ch;
+    }
   }
 }

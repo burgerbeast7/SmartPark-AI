@@ -18,36 +18,28 @@ class SmartParkApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: colorScheme,
-        scaffoldBackgroundColor: colorScheme.surface,
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: ZoomPageTransitionsBuilder(),
+            TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
+          },
+        ),
         appBarTheme: AppBarTheme(
           centerTitle: false,
           elevation: 0,
-          backgroundColor: colorScheme.surface,
+          backgroundColor: Colors.transparent,
           foregroundColor: colorScheme.onSurface,
           titleTextStyle: TextStyle(
             color: colorScheme.onSurface,
             fontSize: 20,
             fontWeight: FontWeight.bold,
+            letterSpacing: -0.3,
           ),
-        ),
-        navigationBarTheme: NavigationBarThemeData(
-          indicatorColor: AppConstants.primarySeedColor.withValues(alpha: 0.15),
-          labelTextStyle: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.primary,
-              );
-            }
-            return TextStyle(
-              fontSize: 12,
-              color: colorScheme.onSurfaceVariant,
-            );
-          }),
         ),
       ),
       home: const HomeShell(),
     );
   }
 }
+
